@@ -92,6 +92,8 @@
 class Calendar  {
     constructor (id) {
         this._self = document.getElementById(id);
+
+        this.onSetDateCallback = null;
         
         this.render();
 
@@ -111,6 +113,10 @@ class Calendar  {
     set selectedDate (value) {        
         this._selectedDate = value;
         this.currentDate = new Date(+value);
+
+        if (typeof this.onSetDateCallback == 'function') {
+            this.onSetDateCallback(value);
+        }
     }
 
     get isSameYearMonth () {
@@ -223,7 +229,14 @@ class Calendar  {
     }
 
     setDate (date = null) {
-        if (date) this.selectedDate = new Date(date);
+        if (date) this.selectedDate = new Date(date);        
+    }
+
+    onSetDate (callback) {
+        // callback(this._selectedDate);
+        this.onSetDateCallback = callback;
+        // console.log(callback);
+        
     }
 }
 
@@ -231,7 +244,8 @@ class Calendar  {
 	const sinceCalendar = new Calendar('since');
 	sinceCalendar.setDate('2020-05-01'); // Y-m-d
 
-	// const untilCalendar = new Calendar('until');
-	// untilCalendar.setDate(); // Y-m-d
+    sinceCalendar.onSetDate(function (selectedDate) {
+        console.log(selectedDate);
+    });
 }) ();
 </script>

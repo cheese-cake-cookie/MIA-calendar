@@ -1,0 +1,51 @@
+<div id="calendar"></div>
+
+<script type="text/javascript">
+class Calendar {
+    constructor (id) {
+        // 정해진 영역에
+        this._self = document.getElementById(id);
+        // 렌더링 영역 생성
+        this.render();
+        // 현재 일자 지정
+        this.currentDate = new Date();
+    }
+
+    set currentDate () {
+        
+    }
+
+    render () {
+        let fragment = document.createDocumentFragment();
+
+        // 년 월 영역 생성
+        fragment.appendChild(this.createYearMonth());
+        // 일 영역 생성
+        fragment.appendChild(this.createDates());
+        
+        this._self.appendChild(fragment);
+    }
+
+    createYearMonth () {
+        let yearMonth = document.createElement('div');
+
+        yearMonth.className = 'year-month';
+        yearMonth.innerHTML = `
+            <span class="year"></span>
+            <span class="month"></span>
+        `;
+        
+        return yearMonth;
+    }
+
+    createDates () {
+        let dates = document.createElement('div');
+
+        dates.className = 'dates';
+
+        return dates;
+    }
+};
+
+let calendar = new Calendar('calendar');
+</script>
