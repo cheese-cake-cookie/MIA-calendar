@@ -1,11 +1,13 @@
 <style type="text/css">
-.m-calendar {
+.calendar {
+	position: relative;
+	display: inline-block;
 	width: 250px;
 	height: 280px;
-	display: inline-block;
 	padding: 18px;
-	box-sizing: border-box;
+	text-align: center;
 	overflow: hidden;
+	box-sizing: border-box;
 	box-shadow: 1px 1px 8px rgba(79, 195, 247, 0.3);
 }
 .calendar .sat {
@@ -15,23 +17,9 @@
 	color: #d50000;
 }
 
-.m-calendar .picker {
-	margin: 0px auto;
-	text-align: center;
-}
-.m-calendar .picker > .year,
-.m-calendar .picker > .month,
-.m-calendar .picker > .btn {
-	display: inline-block;
-}
-.m-calendar .picker > .year,
-.m-calendar .picker > .month {
-	height: 30px;
-	line-height: 30px;
-	font-size: 13px;
-	cursor: pointer;
-}
-.m-calendar .picker > .btn {
+.m-calendar .calendar > .btn {
+	position: absolute;
+	top: 10px;
 	width: 30px;
 	height: 30px;
 	margin: 0px 5px;
@@ -40,11 +28,17 @@
 	border-radius: 30px;
 	cursor: pointer;
 }
-.m-calendar .picker > .btn.prev::before {
+.m-calendar .calendar > .btn.prev {
+	left: 10px;
+}
+.m-calendar .calendar > .btn.prev::before {
 	content: '\003c';
 	color: #fff;
 }
-.m-calendar .picker > .btn.next::after {
+.m-calendar .calendar > .btn.next {
+	right: 10px;
+}
+.m-calendar .calendar > .btn.next::after {
 	content: '\003e';
 	color: #fff;
 }
@@ -81,7 +75,8 @@
 	border-radius: 30px;
 	cursor: pointer;
 }
-.m-calendar > .calendar > .dates > div.today {
+.m-calendar > .calendar > .dates > div.selected {
+	color: #fff;
 	background-color: #81d4fa;
 }
 </style>
@@ -89,85 +84,37 @@
 <div id="until"></div>
 
 <script type="text/javascript">
-class Calendar  {
-    constructor (id) {
+class Calendar {
+    
+	constructor (id) {
         this._self = document.getElementById(id);
-
-        this.onSetDateCallback = null;
-        
-        this.render();
-
-        this.selectedDate = new Date();
+		this._showingDate = new Date();
+        this._onSetDateCallback = null;
+		this._selectedDate = new Date();
+		
+        this.mount();
     }
 
-    get currentDate () {
-        return this._currentDate;
+    mount () {
+        this._self.className = 'm-calendar';
+        this._self.appendChild(this.createCalendar());
+		
+		this.render();
     }
 
-    set currentDate (value) {
-        this._currentDate = value;
-        this.setPicker();
-        this.drawCalendar();
-    }
+	callSetDateCallback () {
+		if (typeof this._onSetDateCallback !== 'function')
+			return;
 
-    set selectedDate (value) {        
-        this._selectedDate = value;
-        this.currentDate = new Date(+value);
-
-        if (typeof this.onSetDateCallback == 'function') {
-            this.onSetDateCallback(value);
-        }
-    }
+		this._onSetDateCallback(this._selectedDate);
+	}
 
     get isSameYearMonth () {
-        return this._selectedDate.getFullYear() == this._currentDate.getFullYear() && this._selectedDate.getMonth() == this._currentDate.getMonth();
-    }
+		if (! this._selectedDate)
+			return false;
 
-    render () {
-        let fragment = document.createDocumentFragment();
-        
-        this._picker = this.createPicker();
-        this._calendar = this.createCalendar();
-
-        fragment.appendChild(this._picker);
-        fragment.appendChild(this._calendar);
-
-        this._self.className = 'm-calendar';
-        this._self.appendChild(fragment);
-    }
-
-    createPicker () {
-        let picker = document.createElement('div');
-        
-        picker.className = 'picker';
-        picker.innerHTML = `
-            <button class="btn prev"></button>
-            <div class="year"></div>
-            <div class="month"></div>
-            <button class="btn next"></button>
-        `;
-
-        picker.addEventListener('click', e => {
-            const btn = e.target.closest('button');
-
-            if (! btn) return false;
-
-            let currentDate = new Date(+this.currentDate);
-            
-            if (btn.className.indexOf('prev') != -1) {
-                currentDate.setMonth(currentDate.getMonth() - 1);
-            } else {    
-                currentDate.setMonth(currentDate.getMonth() + 1);
-            }
-            this.currentDate = currentDate;
-        });
-
-        return picker;
-    }
-
-    setPicker () {
-        this._picker.querySelector('.year').innerText = `${ this._currentDate.getFullYear() }년`;
-        this._picker.querySelector('.month').innerText = `${ this._currentDate.getMonth() + 1}월`;
+        return this._selectedDate.getFullYear() == this._showingDate.getFullYear()
+			&& this._selectedDate.getMonth() == this._showingDate.getMonth();
     }
 
     createCalendar () {
@@ -175,6 +122,10 @@ class Calendar  {
 
         calendar.className = 'calendar';
         calendar.innerHTML = `
+			<button class="btn prev"></button>
+            <button class="btn next"></button>
+			<span class="year"></span>
+            <span class="month"></span>
             <ul class="days">
                 <li class="sun">일</li>
                 <li>월</li>
@@ -187,26 +138,59 @@ class Calendar  {
             <div class="dates"></div>
         `;
 
+		calendar.addEventListener('click', e => {
+            const btn = e.target.closest('button');
+
+            if (! btn) return false;
+			
+			let showingDate = new Date(+this._showingDate);
+
+            if (btn.className.indexOf('prev') != -1) {
+                showingDate.setMonth(showingDate.getMonth() - 1);
+            } else {    
+                showingDate.setMonth(showingDate.getMonth() + 1);
+            }
+
+			this.showingDate = showingDate;
+        });	
+
 		calendar.querySelector('.dates').addEventListener('click', (e) => {
             if (e.target.closest('.date')) {
-                let selectedDate = new Date(+this._selectedDate);
-
-                selectedDate.setFullYear(this._currentDate.getFullYear());
-                selectedDate.setMonth(this._currentDate.getMonth());
-                selectedDate.setDate(e.target.innerText);
+                this._selectedDate.setFullYear(this._showingDate.getFullYear());
+                this._selectedDate.setMonth(this._showingDate.getMonth());
+                this._selectedDate.setDate(e.target.dataset.date);
                 
-                this.selectedDate = selectedDate;
+				this.patch();
+				this.callSetDateCallback();
             }
 		});
+
+		this._year = calendar.querySelector('.year');
+		this._month = calendar.querySelector('.month');
+		this._dates = calendar.querySelector('.dates');
 
         return calendar;
     }
 
-    drawCalendar () {
-		const firstDate = new Date(this._currentDate.getFullYear(), this._currentDate.getMonth(), 1);
-        const lastDate = new Date(this._currentDate.getFullYear(), this._currentDate.getMonth() + 1, 0);
-        const sameYearMonth = this.isSameYearMonth;
+	patch () {
+		this._dates.querySelectorAll('.date').forEach((item) => {
+			if (this.isSameYearMonth && item.dataset.date == this._selectedDate.getDate()) {
+				if (item.className.indexOf('selected') == -1)
+					item.className = item.className.concat(' ', 'selected');
+			} else {
+				item.className = item.className.replace(/\s*selected/, '');
+			}	
+		});
+	}
+
+	render () {
+		const sameYearMonth = this.isSameYearMonth;
+		const firstDate = new Date(this._showingDate.getFullYear(), this._showingDate.getMonth(), 1);
+        const lastDate = new Date(this._showingDate.getFullYear(), this._showingDate.getMonth() + 1, 0);
 		let dateHTML = '';
+
+		this._year.innerText = `${ this._showingDate.getFullYear() }년`;
+        this._month.innerText = `${ this._showingDate.getMonth() + 1}월`;
 		
 		for (let i = 0; i < firstDate.getDay(); i += 1) {
 			dateHTML += `<div></div>`;
@@ -219,33 +203,49 @@ class Calendar  {
 			if ((firstDate.getDay() + i) % 7 == 0) dayOfWeek.push('sat');
             
             if (sameYearMonth && this._selectedDate.getDate() == i) {
-                dayOfWeek.push('today');
+                dayOfWeek.push('selected');
             }
 			
-			dateHTML += `<div class="${ dayOfWeek.join(' ') }">${ i }</div>`;
+			dateHTML += `<div class="${ dayOfWeek.join(' ') }" data-date="${ i }">${ i }</div>`;
 		}
 
-		return this._self.querySelector(`.dates`).innerHTML = dateHTML;
+		this._dates.innerHTML = dateHTML;
+	}
+
+    setDate (date, reRender = true) {
+		if (! date)
+			return this;
+		
+		this._selectedDate = new Date(date);
+
+		if (! reRender) {
+			this.patch();
+		} else {
+			this.showingDate = new Date(date);
+		}
+		
+		this.callSetDateCallback();
+
+		return this;
     }
 
-    setDate (date = null) {
-        if (date) this.selectedDate = new Date(date);        
-    }
+	set showingDate (value) {
+		this._showingDate = value;
+		this.render();
+	}
 
     onSetDate (callback) {
-        // callback(this._selectedDate);
-        this.onSetDateCallback = callback;
-        // console.log(callback);
-        
+        this._onSetDateCallback = callback;
+        return this;
     }
 }
 
-(function () {
+(() => {
 	const sinceCalendar = new Calendar('since');
-	sinceCalendar.setDate('2020-05-01'); // Y-m-d
 
-    sinceCalendar.onSetDate(function (selectedDate) {
+    sinceCalendar.onSetDate(selectedDate => {
         console.log(selectedDate);
     });
+	
 }) ();
 </script>
